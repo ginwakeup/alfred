@@ -1,0 +1,9 @@
+version: "3.9"
+
+services:
+  sleeper:
+    image: ubuntu:24.04    # or ubuntu:24.04-slim for smaller image
+    container_name: sleeper
+    command: bash -c "sleep 300"   # 5 minutes = 300 seconds
+    stdin_open: true   # optional, keeps container interactive
+    tty: true          # optional, allocates a terminal
