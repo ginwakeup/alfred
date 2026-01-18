@@ -9,15 +9,21 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type SourceType string
+
 type AlfredConfig struct {
 	Project struct {
 		Name    string `yaml:"name"`
 		Compose string `yaml:"-"`
 	} `yaml:"project"`
 
-	Dependencies     []string `yaml:"dependencies"`
-	DependenciesRoot string   `yaml:"dependencies_root"`
-	Network          struct {
+	Dependencies struct {
+		RepositoryType string `yaml:"repository_type"`
+		// This can either be a local file system path, or a GitHub repository, depending on RepositoryType.
+		Location     string   `yaml:"location"`
+		Dependencies []string `yaml:"dependencies"`
+	}
+	Network struct {
 		Name string `yaml:"name"`
 	} `yaml:"network"`
 
@@ -60,11 +66,16 @@ func (cfg *AlfredConfig) Init(path string) error {
 }
 
 func (cfg *AlfredConfig) Create() error {
-	// Create project dir
-	err := os.MkdirAll(filepath.Dir(cfg.Path), 0755)
-	if err != nil {
-		return err
+	// Create project dir if it does not exist.
+	projectRoot := filepath.Dir(cfg.Path)
+	_, err := os.Stat(projectRoot)
+	if os.IsNotExist(err) {
+		err = os.MkdirAll(projectRoot, 0755)
+		if err != nil {
+			return err
+		}
 	}
+
 	// YAML data Marshall
 	data, err := yaml.Marshal(&cfg)
 	if err != nil {
@@ -87,8 +98,8 @@ func (cfg *AlfredConfig) Validate() error {
 		return err
 	}
 
-	for _, system := range cfg.Dependencies {
-		dockerComposePath := fmt.Sprintf("%s/%s/docker-compose.yaml", cfg.DependenciesRoot, system)
+	for _, system := range cfg.Dependencies.Dependencies {
+		dockerComposePath := fmt.Sprintf("%s/%s/docker-compose.yaml", cfg.Dependencies.Location, system)
 		if err := docker.Validate(dockerComposePath); err != nil {
 			return err
 		}
@@ -97,8 +108,8 @@ func (cfg *AlfredConfig) Validate() error {
 }
 
 func (cfg *AlfredConfig) RunDependencies() error {
-	for _, system := range cfg.Dependencies {
-		depComposePath := fmt.Sprintf("%s/%s/docker-compose.yaml", cfg.DependenciesRoot, system)
+	for _, system := range cfg.Dependencies.Dependencies {
+		depComposePath := fmt.Sprintf("%s/%s/docker-compose.yaml", cfg.Dependencies.Location, system)
 		outTmpComposePath := filepath.Join(cfg.CacheDir, system, "docker-compose.yaml")
 
 		// Before running, add a custom network and write tmp output yamls

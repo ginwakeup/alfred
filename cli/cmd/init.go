@@ -10,18 +10,19 @@ import (
 )
 
 type InitConfig struct {
-	ProjectRoot      string
-	ProjectName      string
-	ProjectCompose   string
-	DependenciesRoot string
-	Dependencies     []string
+	ProjectRoot          string   // root location of the Alfred project to create.
+	ProjectName          string   // name of the Alfred project to create
+	DependenciesRepoType string   // git or local
+	DependenciesLocation string   // a git repository url or a local file system path
+	Dependencies         []string // list of dependencies to resolve
 }
 
 var (
-	projectName      string
-	projectRoot      string
-	dependenciesRoot string
-	dependenciesRaw  string
+	projectName          string
+	projectRoot          string
+	dependenciesRepoType string
+	dependenciesLocation string
+	dependenciesRaw      string
 )
 
 func resolveInitConfig() (*InitConfig, error) {
@@ -33,14 +34,26 @@ func resolveInitConfig() (*InitConfig, error) {
 		return nil, fmt.Errorf("--project-root is required")
 	}
 
-	depsRoot := dependenciesRoot
-	if depsRoot == "" {
-		depsRoot = os.Getenv("DEPENDENCIES_ROOT")
+	if dependenciesRepoType == "" {
+		return nil, fmt.Errorf("--dependencies-repo-type is required")
 	}
 
-	if depsRoot == "" {
+	if dependenciesLocation == "" {
+		return nil, fmt.Errorf("--dependencies-location is required")
+	}
+
+	if dependenciesRaw == "" {
+		return nil, fmt.Errorf("--dependencies are required")
+	}
+
+	depsLocation := dependenciesLocation
+	if depsLocation == "" {
+		depsLocation = os.Getenv("DEPENDENCIES_LOCATION")
+	}
+
+	if depsLocation == "" {
 		return nil, fmt.Errorf(
-			"--dependencies-root is required unless DEPENDENCIES_ROOT is set",
+			"--dependencies-location is required unless DEPENDENCIES_LOCATION is set",
 		)
 	}
 
@@ -53,10 +66,11 @@ func resolveInitConfig() (*InitConfig, error) {
 	}
 
 	return &InitConfig{
-		ProjectName:      projectName,
-		ProjectRoot:      projectRoot,
-		DependenciesRoot: depsRoot,
-		Dependencies:     deps,
+		ProjectName:          projectName,
+		ProjectRoot:          projectRoot,
+		DependenciesLocation: depsLocation,
+		DependenciesRepoType: dependenciesRepoType,
+		Dependencies:         deps,
 	}, nil
 }
 
@@ -77,10 +91,11 @@ func runInit(cfg *InitConfig) error {
 	fmt.Println("Initializing project")
 	fmt.Println("Project Name:", cfg.ProjectName)
 	fmt.Println("Project root:", cfg.ProjectRoot)
-	fmt.Println("Dependencies root:", cfg.DependenciesRoot)
+	fmt.Println("Dependencies Repository Type:", cfg.DependenciesRepoType)
+	fmt.Println("Dependencies Location:", cfg.DependenciesLocation)
 	fmt.Println("Dependencies:", cfg.Dependencies)
 
-	project.InitAlfredProject(cfg.ProjectName, cfg.DependenciesRoot, cfg.ProjectRoot, cfg.Dependencies)
+	project.InitAlfredProject(cfg.ProjectName, cfg.ProjectRoot, cfg.DependenciesLocation, cfg.DependenciesRepoType, cfg.Dependencies)
 	return nil
 }
 
@@ -100,20 +115,31 @@ func Init() *cobra.Command {
 	)
 
 	initCmd.Flags().StringVar(
-		&dependenciesRoot,
-		"dependencies-root",
+		&dependenciesRepoType,
+		"dependencies-repo-type",
 		"",
-		"Path to the dependencies root (or set DEPENDENCIES_ROOT)",
+		"Type of repository for dependencies: git or local",
+	)
+
+	initCmd.Flags().StringVar(
+		&dependenciesLocation,
+		"dependencies-location",
+		"",
+		"Path to the dependencies location (or set DEPENDENCIES_LOCATION)",
 	)
 
 	initCmd.Flags().StringVar(
 		&dependenciesRaw,
 		"dependencies",
 		"",
-		"Comma-separated list of dependencies (optional)",
+		"Comma-separated list of dependencies",
 	)
 
-	_ = initCmd.MarkFlagRequired("project-root")
+	_ = initCmd.MarkFlagRequired("project-name")
+	_ = initCmd.MarkFlagRequired("project-name")
+	_ = initCmd.MarkFlagRequired("dependencies-repo-type")
+	_ = initCmd.MarkFlagRequired("dependencies-location")
+	_ = initCmd.MarkFlagRequired("dependencies")
 
 	return initCmd
 }

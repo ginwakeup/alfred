@@ -1,9 +1,10 @@
 project:
   name: hello-world
 
-dependencies_root: /Users/Iacopo/GolandProjects/Alfred/examples/simple/systems
 dependencies:
-  - mongo
+  dependencies:
+    - mongo
+  location: /Users/Iacopo/GolandProjects/Alfred/examples/simple/systems
 
 network:
   name: alfred-dev

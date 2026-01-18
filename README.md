@@ -23,6 +23,14 @@ network:
 
 Then you can run the development environment by executing: `alfred dev`
 
+## Get Started
+1. Place `alfred` in your `PATH`
+
+To create a new project, run:
+> alfred init --project-name <name> --project-root <project-root> --dependencies <comma,sep,deps>
+
+e.g.
+> alfred init --project-name my-project --project-root /my-project/root --dependencies mongo,redis
 
 ## Features
 1. Define development environments with an `alfred.yaml` and define a full development environment for your application.
