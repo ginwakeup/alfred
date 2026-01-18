@@ -1,0 +1,13 @@
+networks:
+    alfred-dev:
+        external: true
+services:
+    sleeper:
+        command: bash -c "sleep 300"
+        container_name: sleeper
+        image: ubuntu:24.04
+        networks:
+            alfred-dev: {}
+        stdin_open: true
+        tty: true
+version: "3.9"

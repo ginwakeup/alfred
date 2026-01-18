@@ -75,10 +75,11 @@ func SaveComposeFile(compose map[string]interface{}, path string) error {
 	return os.WriteFile(path, data, 0644)
 }
 
-func Up(composePath string) error {
+func Up(composePath string, projectName string) error {
 	// Run docker-compose
 	cmd := exec.Command(
 		"docker", "compose",
+		"-p", projectName,
 		"-f", composePath, "up", "-d",
 	)
 	cmd.Stdout = os.Stdout

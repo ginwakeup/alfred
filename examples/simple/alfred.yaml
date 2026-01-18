@@ -1,6 +1,5 @@
 project:
   name: hello-world
-  compose: ./docker-compose.yaml
 
 dependencies_root: /Users/Iacopo/GolandProjects/Alfred/examples/simple/systems
 dependencies:

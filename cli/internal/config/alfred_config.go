@@ -9,10 +9,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type DevConfig struct {
+type AlfredConfig struct {
 	Project struct {
 		Name    string `yaml:"name"`
-		Compose string `yaml:"compose"`
+		Compose string `yaml:"-"`
 	} `yaml:"project"`
 
 	Dependencies     []string `yaml:"dependencies"`
@@ -21,24 +21,25 @@ type DevConfig struct {
 		Name string `yaml:"name"`
 	} `yaml:"network"`
 
-	ConfigPath string
-	CacheDir   string
+	// Internal - runtime
+	Path     string `yaml:"-"`
+	CacheDir string `yaml:"-"`
 }
 
-func (cfg *DevConfig) Init(path string) error {
-	// LoadConfig alfred config data and unmarshal to DevConfig struct.
+func (cfg *AlfredConfig) Init(path string) error {
+	// LoadConfig alfred config data and unmarshal to AlfredConfig struct.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
 
-	cfg.ConfigPath = path
+	cfg.Path = path
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return err
 	}
 
 	// Create a cache directory
-	configRootDir := filepath.Dir(cfg.ConfigPath)
+	configRootDir := filepath.Dir(cfg.Path)
 	cacheDir := filepath.Join(configRootDir, ".alfred")
 	if err := os.MkdirAll(cacheDir, 0755); err != nil {
 		return err
@@ -47,11 +48,8 @@ func (cfg *DevConfig) Init(path string) error {
 
 	// Setup some initial values
 
-	// If config.app.compose is absolute, leave it as is.
-	// If not, resolve it based on alfred.yaml location.
-	if !filepath.IsAbs(cfg.Project.Compose) {
-		cfg.Project.Compose = filepath.Join(filepath.Dir(path), cfg.Project.Compose)
-	}
+	// Alfred assumes a docker-compose in the project-root, for the moment.
+	cfg.Project.Compose = filepath.Join(filepath.Dir(path), "docker-compose.yaml")
 
 	// Run some validation
 	if err := cfg.Validate(); err != nil {
@@ -61,7 +59,25 @@ func (cfg *DevConfig) Init(path string) error {
 	return nil
 }
 
-func (cfg *DevConfig) Validate() error {
+func (cfg *AlfredConfig) Create() error {
+	// Create project dir
+	err := os.MkdirAll(filepath.Dir(cfg.Path), 0755)
+	if err != nil {
+		return err
+	}
+	// YAML data Marshall
+	data, err := yaml.Marshal(&cfg)
+	if err != nil {
+		panic(err)
+	}
+	err = os.WriteFile(cfg.Path, data, 0644)
+	if err != nil {
+		panic(err)
+	}
+	return nil
+}
+
+func (cfg *AlfredConfig) Validate() error {
 	if cfg.Network.Name == "" {
 		return fmt.Errorf("No network name specified in Alfred Config.")
 	}
@@ -80,7 +96,7 @@ func (cfg *DevConfig) Validate() error {
 	return nil
 }
 
-func (cfg *DevConfig) RunDependencies() error {
+func (cfg *AlfredConfig) RunDependencies() error {
 	for _, system := range cfg.Dependencies {
 		depComposePath := fmt.Sprintf("%s/%s/docker-compose.yaml", cfg.DependenciesRoot, system)
 		outTmpComposePath := filepath.Join(cfg.CacheDir, system, "docker-compose.yaml")
@@ -88,15 +104,15 @@ func (cfg *DevConfig) RunDependencies() error {
 		// Before running, add a custom network and write tmp output yamls
 		tmpComposePath := docker.GenerateTmpCompose(depComposePath, outTmpComposePath)
 		fmt.Println("tmpComposePath:", tmpComposePath)
-		if err := docker.Up(outTmpComposePath); err != nil {
+		if err := docker.Up(outTmpComposePath, cfg.Project.Name); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func LoadConfig(path string) (*DevConfig, error) {
-	var cfg DevConfig
+func LoadConfig(path string) (*AlfredConfig, error) {
+	var cfg AlfredConfig
 
 	if err := cfg.Init(path); err != nil {
 		return nil, err
