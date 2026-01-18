@@ -4,11 +4,12 @@ import (
 	"path/filepath"
 
 	"github.com/ginwakeup/alfred/cli/internal/config"
+	"github.com/ginwakeup/alfred/cli/internal/core/types"
 	"github.com/ginwakeup/alfred/cli/internal/docker"
 	"github.com/spf13/cobra"
 )
 
-func Run() *cobra.Command {
+func Run(alfredRunTimeCfg *types.AlfredRunTimeConfig) *cobra.Command {
 	return &cobra.Command{
 		Use:   "run <alfred.yaml>",
 		Args:  cobra.ExactArgs(1),
@@ -26,13 +27,13 @@ func Run() *cobra.Command {
 			}
 
 			// Run all dependencies.
-			if err := cfg.RunDependencies(); err != nil {
+			if err := cfg.RunDependencies(alfredRunTimeCfg); err != nil {
 				return err
 			}
 
 			// Apply overrides to Project compose and start
 			projectTmpComposeOut := filepath.Join(cfg.CacheDir, "docker-compose.yaml")
-			err = docker.GenerateTmpCompose(cfg.Project.Compose, projectTmpComposeOut)
+			err = docker.GenerateOverriddenCompose(cfg.Project.Compose, projectTmpComposeOut)
 			if err == nil {
 				return docker.Up(projectTmpComposeOut, cfg.Project.Name)
 			}

@@ -5,11 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ginwakeup/alfred/cli/internal/core/types"
+	"github.com/ginwakeup/alfred/cli/internal/dependencies"
 	"github.com/ginwakeup/alfred/cli/internal/docker"
 	"gopkg.in/yaml.v3"
 )
-
-type SourceType string
 
 type AlfredConfig struct {
 	Project struct {
@@ -17,12 +17,8 @@ type AlfredConfig struct {
 		Compose string `yaml:"-"`
 	} `yaml:"project"`
 
-	Dependencies struct {
-		RepositoryType string `yaml:"repository_type"`
-		// This can either be a local file system path, or a GitHub repository, depending on RepositoryType.
-		Location     string   `yaml:"location"`
-		Dependencies []string `yaml:"dependencies"`
-	}
+	dependencies.Dependencies
+
 	Network struct {
 		Name string `yaml:"name"`
 	} `yaml:"network"`
@@ -54,7 +50,7 @@ func (cfg *AlfredConfig) Init(path string) error {
 
 	// Setup some initial values
 
-	// Alfred assumes a docker-compose in the project-root, for the moment.
+	// Alfred assumes a project docker-compose in the project-root, for the moment.
 	cfg.Project.Compose = filepath.Join(filepath.Dir(path), "docker-compose.yaml")
 
 	// Run some validation
@@ -97,23 +93,19 @@ func (cfg *AlfredConfig) Validate() error {
 	if err := docker.Validate(cfg.Project.Compose); err != nil {
 		return err
 	}
-
-	for _, system := range cfg.Dependencies.Dependencies {
-		dockerComposePath := fmt.Sprintf("%s/%s/docker-compose.yaml", cfg.Dependencies.Location, system)
-		if err := docker.Validate(dockerComposePath); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
-func (cfg *AlfredConfig) RunDependencies() error {
-	for _, system := range cfg.Dependencies.Dependencies {
-		depComposePath := fmt.Sprintf("%s/%s/docker-compose.yaml", cfg.Dependencies.Location, system)
+func (cfg *AlfredConfig) RunDependencies(alfredRunTimeCfg *types.AlfredRunTimeConfig) error {
+	dependenciesComposePaths, _ := cfg.Dependencies.ResolveDependenciesLocation(alfredRunTimeCfg)
+
+	// Apply overrides to compose paths and store them in project cache location.
+	for _, composePath := range dependenciesComposePaths {
+		system := filepath.Base(filepath.Dir(composePath))
 		outTmpComposePath := filepath.Join(cfg.CacheDir, system, "docker-compose.yaml")
 
 		// Before running, add a custom network and write tmp output yamls
-		tmpComposePath := docker.GenerateTmpCompose(depComposePath, outTmpComposePath)
+		tmpComposePath := docker.GenerateOverriddenCompose(composePath, outTmpComposePath)
 		fmt.Println("tmpComposePath:", tmpComposePath)
 		if err := docker.Up(outTmpComposePath, cfg.Project.Name); err != nil {
 			return err

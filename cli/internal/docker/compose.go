@@ -20,7 +20,7 @@ func Validate(composeFile string) error {
 	return nil
 }
 
-func GenerateTmpCompose(sourceComposePath string, outTmpComposePath string) error {
+func GenerateOverriddenCompose(sourceComposePath string, outTmpComposePath string) error {
 	composeData, err := AddAlfredNetwork(sourceComposePath)
 	if err == nil {
 		return SaveComposeFile(composeData, outTmpComposePath)

@@ -1,1 +1,4 @@
 /my-project
+.idea
+
+*.DS_STORE
