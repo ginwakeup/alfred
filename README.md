@@ -42,7 +42,7 @@ with a team of developers, so versions can be kept consistent for simple develop
 1. Place `alfred` executable in your `PATH`
 
 To create a new project using a git repo, run:
-> alfred init --project-root <project-root> --project-name <project-name> --dependencies-location https://github.com/<username>/<repo>.git --dependencies-repo-type git --dependencies mongo,kafka
+> alfred init --project-root <project-root> --project-name <project-name> --dependencies-location https://github.com/repository.git --dependencies-repo-type git --dependencies mongo,kafka
 
 Or, you can also point to a file system location where your docker-compose files live:
 
