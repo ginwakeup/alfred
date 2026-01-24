@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"errors"
+	"os"
 	"path/filepath"
 
 	"github.com/ginwakeup/alfred/cli/internal/config"
@@ -31,13 +33,21 @@ func Run(alfredRunTimeCfg *types.AlfredRunTimeConfig) *cobra.Command {
 				return err
 			}
 
-			// Apply overrides to Project compose and start
+			// Apply overrides to Project compose and start, only if a compose for the project exists.
 			projectTmpComposeOut := filepath.Join(cfg.CacheDir, "docker-compose.yaml")
-			err = docker.GenerateOverriddenCompose(cfg.Project.Compose, projectTmpComposeOut)
-			if err == nil {
-				return docker.Up(projectTmpComposeOut, cfg.Project.Name)
+
+			if _, err := os.Stat(projectTmpComposeOut); errors.Is(err, os.ErrNotExist) {
+				return nil
 			}
-			return err
+
+			if cfg.Project.Compose != "" {
+				err = docker.GenerateOverriddenCompose(cfg.Project.Compose, projectTmpComposeOut)
+				if err == nil {
+					return docker.Up(projectTmpComposeOut, cfg.Project.Name)
+				}
+				return err
+			}
+			return nil
 		},
 	}
 }

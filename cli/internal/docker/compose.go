@@ -11,15 +11,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func Validate(composeFile string) error {
-	_, err := Load(composeFile)
-	if err != nil {
-		return fmt.Errorf("could not load docker compose file: %w", err)
-	}
-
-	return nil
-}
-
 func GenerateOverriddenCompose(sourceComposePath string, outTmpComposePath string) error {
 	composeData, err := AddAlfredNetwork(sourceComposePath)
 	if err == nil {

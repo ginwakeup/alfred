@@ -50,15 +50,24 @@ func (cfg *AlfredConfig) Init(path string) error {
 
 	// Setup some initial values
 
-	// Alfred assumes a project docker-compose in the project-root, for the moment.
-	cfg.Project.Compose = filepath.Join(filepath.Dir(path), "docker-compose.yaml")
+	cfg.LoadProjectCompose(path)
 
-	// Run some validation
+	// Run some validation on the Alfred.yaml
 	if err := cfg.Validate(); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (cfg *AlfredConfig) LoadProjectCompose(alfredConfigPath string) {
+	// Try to look for a project docker-compose.
+	expectedProjectComposePath := filepath.Join(filepath.Dir(alfredConfigPath), "docker-compose.yaml")
+	_, err := os.Stat(expectedProjectComposePath)
+	if os.IsNotExist(err) {
+		return
+	}
+	cfg.Project.Compose = expectedProjectComposePath
 }
 
 func (cfg *AlfredConfig) Create() error {
@@ -87,11 +96,6 @@ func (cfg *AlfredConfig) Create() error {
 func (cfg *AlfredConfig) Validate() error {
 	if cfg.Network.Name == "" {
 		return fmt.Errorf("No network name specified in Alfred Config.")
-	}
-
-	// Validate Project Compose for Alfred features
-	if err := docker.Validate(cfg.Project.Compose); err != nil {
-		return err
 	}
 	return nil
 }

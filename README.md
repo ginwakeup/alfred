@@ -1,5 +1,5 @@
 # Alfred
-Alfred is a development environment manager for local applications, based on docker-compose.
+Alfred is a development environment manager based on docker-compose, which wants to make it easy to bootstrap local environments with one command.
 
 The idea behind Alfred is to have:
 1. A location (repository) for docker-compose files. This can be either on git, or a local file-system.
