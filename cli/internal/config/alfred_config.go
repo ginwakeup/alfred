@@ -101,8 +101,10 @@ func (cfg *AlfredConfig) Validate() error {
 }
 
 func (cfg *AlfredConfig) RunDependencies(alfredRunTimeCfg *types.AlfredRunTimeConfig) error {
-	dependenciesComposePaths, _ := cfg.Dependencies.ResolveDependenciesLocation(alfredRunTimeCfg)
-
+	dependenciesComposePaths, err := cfg.Dependencies.ResolveDependenciesLocation(alfredRunTimeCfg)
+	if err != nil {
+		return err
+	}
 	// Apply overrides to compose paths and store them in project cache location.
 	for _, composePath := range dependenciesComposePaths {
 		system := filepath.Base(filepath.Dir(composePath))

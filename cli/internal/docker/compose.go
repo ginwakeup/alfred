@@ -93,7 +93,6 @@ func CreateDevNetwork(networkName string) error {
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
-	fmt.Println("Created Network alfred-dev")
 	err := cmd.Run()
 	if err != nil {
 		msg := stderr.String()
@@ -104,6 +103,8 @@ func CreateDevNetwork(networkName string) error {
 			return err
 		}
 	}
+	fmt.Println("Created Network alfred-dev")
+
 	return nil
 }
 
